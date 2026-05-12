@@ -4,12 +4,6 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import { createKeywordDetectorHook } from "./index"
 import { _resetForTesting, setMainSession } from "../../features/claude-code-session-state"
 
-type StartLoopCall = {
-  sessionID: string
-  prompt: string
-  options: Record<string, unknown>
-}
-
 function createMockPluginInput(toastCalls: string[] = []) {
   return {
     client: {
@@ -22,15 +16,6 @@ function createMockPluginInput(toastCalls: string[] = []) {
   } as unknown as PluginInput
 }
 
-function createMockRalphLoop(startLoopCalls: StartLoopCall[]) {
-  return {
-    startLoop: (sessionID: string, prompt: string, options?: Record<string, unknown>): boolean => {
-      startLoopCalls.push({ sessionID, prompt, options: options ?? {} })
-      return true
-    },
-  }
-}
-
 describe("keyword-detector ultrawork edge trigger", () => {
   beforeEach(() => {
     _resetForTesting()
@@ -41,14 +26,13 @@ describe("keyword-detector ultrawork edge trigger", () => {
     _resetForTesting()
   })
 
-  test("#given greeting text before ulw and surrounding whitespace #when chat.message fires #then ultrawork still activates without starting ralph loop", async () => {
+  test("#given greeting text before ulw and surrounding whitespace #when chat.message fires #then ultrawork activates", async () => {
     // given
     const toastCalls: string[] = []
-    const startLoopCalls: StartLoopCall[] = []
     const hook = createKeywordDetectorHook(
       createMockPluginInput(toastCalls),
       undefined,
-      createMockRalphLoop(startLoopCalls),
+      undefined,
     )
     const output = {
       message: {} as Record<string, unknown>,
@@ -60,19 +44,17 @@ describe("keyword-detector ultrawork edge trigger", () => {
 
     // then
     expect(toastCalls).toContain("Ultrawork Mode Activated")
-    expect(startLoopCalls).toHaveLength(0)
     expect(output.parts[0]?.text).toContain("ULTRAWORK MODE ENABLED!")
     expect(output.parts[0]?.text).toContain(" hi there ulw ")
   })
 
-  test("#given greeting before ulw with a trailing task #when chat.message fires #then ultrawork activates and preserves the task without starting ralph loop", async () => {
+  test("#given greeting before ulw with a trailing task #when chat.message fires #then ultrawork activates and preserves the task", async () => {
     // given
     const toastCalls: string[] = []
-    const startLoopCalls: StartLoopCall[] = []
     const hook = createKeywordDetectorHook(
       createMockPluginInput(toastCalls),
       undefined,
-      createMockRalphLoop(startLoopCalls),
+      undefined,
     )
     const output = {
       message: {} as Record<string, unknown>,
@@ -84,19 +66,17 @@ describe("keyword-detector ultrawork edge trigger", () => {
 
     // then
     expect(toastCalls).toContain("Ultrawork Mode Activated")
-    expect(startLoopCalls).toHaveLength(0)
     expect(output.parts[0]?.text).toContain("ULTRAWORK MODE ENABLED!")
     expect(output.parts[0]?.text).toContain("hey ulw fix the flaky keyword tests")
   })
 
-  test("#given ulw mentioned in the middle of a sentence #when chat.message fires #then ultrawork still activates without starting ralph loop", async () => {
+  test("#given ulw mentioned in the middle of a sentence #when chat.message fires #then ultrawork activates", async () => {
     // given
     const toastCalls: string[] = []
-    const startLoopCalls: StartLoopCall[] = []
     const hook = createKeywordDetectorHook(
       createMockPluginInput(toastCalls),
       undefined,
-      createMockRalphLoop(startLoopCalls),
+      undefined,
     )
     const output = {
       message: {} as Record<string, unknown>,
@@ -108,18 +88,16 @@ describe("keyword-detector ultrawork edge trigger", () => {
 
     // then
     expect(toastCalls).toContain("Ultrawork Mode Activated")
-    expect(startLoopCalls).toHaveLength(0)
     expect(output.parts[0]?.text).toContain("please ulw fix the flaky keyword tests")
   })
 
-  test("#given trailing ultrawork reference without punctuation #when chat.message fires #then ultrawork still activates without starting ralph loop", async () => {
+  test("#given trailing ultrawork reference without punctuation #when chat.message fires #then ultrawork activates", async () => {
     // given
     const toastCalls: string[] = []
-    const startLoopCalls: StartLoopCall[] = []
     const hook = createKeywordDetectorHook(
       createMockPluginInput(toastCalls),
       undefined,
-      createMockRalphLoop(startLoopCalls),
+      undefined,
     )
     const output = {
       message: {} as Record<string, unknown>,
@@ -131,7 +109,6 @@ describe("keyword-detector ultrawork edge trigger", () => {
 
     // then
     expect(toastCalls).toContain("Ultrawork Mode Activated")
-    expect(startLoopCalls).toHaveLength(0)
     expect(output.parts[0]?.text).toContain("what is ultrawork")
   })
 })

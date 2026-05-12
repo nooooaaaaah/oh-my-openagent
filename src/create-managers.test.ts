@@ -1,30 +1,21 @@
 /// <reference types="bun-types" />
 
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test"
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test"
 import type { PluginInput } from "@opencode-ai/plugin"
 
 import { OhMyOpenCodeConfigSchema } from "./config/schema/oh-my-opencode-config"
 import { createManagers } from "./create-managers"
-import * as openclawRuntimeDispatch from "./openclaw/runtime-dispatch"
 import { createModelCacheState } from "./plugin-state"
 
 type CleanupRegistration = {
   shutdown: () => void | Promise<void>
 }
 
-type CleanupSessionTeamRunsFn = typeof import("./features/team-mode/team-runtime/session-cleanup").cleanupSessionTeamRuns
-
 const markServerRunningInProcess = mock(() => {})
 let backgroundManagerOptions: {
   onSubagentSessionCreated?: (event: { sessionID: string; parentID: string; title: string }) => Promise<void>
 } | null = null
-const trackedPaneBySession = new Map<string, string>()
 const registeredCleanupManagers: CleanupRegistration[] = []
-const cleanupSessionTeamRunsMock = mock(async () => ({
-  cleanedTeamRunIds: [],
-  removedLayoutTeamRunIds: [],
-  errors: [],
-}))
 
 class MockBackgroundManager {
   constructor(config: {
@@ -42,17 +33,6 @@ class MockTmuxSessionManager {
   constructor(_ctx: PluginInput, _config: unknown) {}
 
   async cleanup(): Promise<void> {}
-
-  async onSessionCreated(event: { properties?: { info?: { id?: string } } }): Promise<void> {
-    const sessionID = event.properties?.info?.id
-    if (sessionID) {
-      trackedPaneBySession.set(sessionID, `%pane-${sessionID}`)
-    }
-  }
-
-  getTrackedPaneId(sessionID: string): string | undefined {
-    return trackedPaneBySession.get(sessionID)
-  }
 }
 
 function createConfigHandler(): ReturnType<typeof import("./plugin-handlers").createConfigHandler> {
@@ -74,7 +54,6 @@ function createDeps(): NonNullable<Parameters<typeof createManagers>[0]["deps"]>
     TmuxSessionManagerClass: MockTmuxSessionManager as typeof import("./features/tmux-subagent").TmuxSessionManager,
     initTaskToastManagerFn: initTaskToastManager,
     registerManagerForCleanupFn: registerManagerForCleanup,
-    cleanupSessionTeamRunsFn: cleanupSessionTeamRunsMock as CleanupSessionTeamRunsFn,
     createConfigHandlerFn: createConfigHandler,
     markServerRunningInProcessFn: markServerRunningInProcess,
   }
@@ -129,20 +108,10 @@ function createContext(directory: string): PluginInput {
 }
 
 describe("createManagers", () => {
-  let dispatchOpenClawEvent: ReturnType<typeof spyOn>
-
   beforeEach(() => {
-    dispatchOpenClawEvent = spyOn(openclawRuntimeDispatch, "dispatchOpenClawEvent")
     markServerRunningInProcess.mockClear()
-    dispatchOpenClawEvent.mockReset()
     backgroundManagerOptions = null
-    trackedPaneBySession.clear()
     registeredCleanupManagers.length = 0
-    cleanupSessionTeamRunsMock.mockClear()
-  })
-
-  afterEach(() => {
-    dispatchOpenClawEvent.mockRestore()
   })
 
   it("#given tmux integration is disabled #when managers are created #then it does not mark the tmux server as running", () => {
@@ -173,69 +142,5 @@ describe("createManagers", () => {
     createManagers(args)
 
     expect(markServerRunningInProcess).toHaveBeenCalledTimes(1)
-  })
-
-  it("#given openclaw is enabled #when the background session-created callback runs #then it dispatches openclaw with the tracked pane id", async () => {
-    const args = {
-      ctx: createContext("/tmp/project"),
-      pluginConfig: OhMyOpenCodeConfigSchema.parse({
-        openclaw: {
-          enabled: true,
-          gateways: {},
-          hooks: {},
-        },
-      }),
-      tmuxConfig: createTmuxConfig(true),
-      modelCacheState: createModelCacheState(),
-      backgroundNotificationHookEnabled: false,
-      deps: createDeps(),
-    }
-
-    createManagers(args)
-
-    await backgroundManagerOptions?.onSubagentSessionCreated?.({
-      sessionID: "ses-bg-1",
-      parentID: "ses-parent",
-      title: "child task",
-    })
-
-    expect(dispatchOpenClawEvent).toHaveBeenCalledTimes(1)
-    expect(dispatchOpenClawEvent).toHaveBeenCalledWith({
-      config: args.pluginConfig.openclaw,
-      rawEvent: "session.created",
-      context: {
-        sessionId: "ses-bg-1",
-        projectPath: "/tmp/project",
-        tmuxPaneId: "%pane-ses-bg-1",
-      },
-    })
-  })
-
-  it("#given team mode is enabled #when process cleanup runs #then session team runs are cleaned with tmux visualization dependencies", async () => {
-    const args = {
-      ctx: createContext("/tmp/project"),
-      pluginConfig: OhMyOpenCodeConfigSchema.parse({
-        team_mode: {
-          enabled: true,
-          tmux_visualization: true,
-        },
-      }),
-      tmuxConfig: createTmuxConfig(true),
-      modelCacheState: createModelCacheState(),
-      backgroundNotificationHookEnabled: false,
-      deps: createDeps(),
-    }
-
-    createManagers(args)
-
-    await registeredCleanupManagers[0]?.shutdown()
-
-    expect(cleanupSessionTeamRunsMock).toHaveBeenCalledTimes(1)
-    const cleanupArgs = cleanupSessionTeamRunsMock.mock.calls[0]?.[0]
-    expect(cleanupArgs).toMatchObject({
-      config: args.pluginConfig.team_mode,
-    })
-    expect(cleanupArgs?.tmuxMgr).toBeInstanceOf(MockTmuxSessionManager)
-    expect(cleanupArgs?.bgMgr).toBeInstanceOf(MockBackgroundManager)
   })
 })

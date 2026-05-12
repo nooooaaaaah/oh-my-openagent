@@ -14,7 +14,6 @@ import {
   subagentSessions,
 } from "../../features/claude-code-session-state"
 import type { ContextCollector } from "../../features/context-injector"
-import type { RalphLoopHook } from "../ralph-loop"
 
 function suppressComboStandalones(detected: DetectedKeyword[]): DetectedKeyword[] {
   const hasCombo = detected.some((k) => k.type === "hyperplan-ultrawork")
@@ -25,7 +24,6 @@ function suppressComboStandalones(detected: DetectedKeyword[]): DetectedKeyword[
 export function createKeywordDetectorHook(
   ctx: PluginInput,
   _collector?: ContextCollector,
-  _ralphLoop?: Pick<RalphLoopHook, "startLoop">,
   config?: KeywordDetectorConfig,
 ) {
   const disabledKeywords = config?.disabled_keywords

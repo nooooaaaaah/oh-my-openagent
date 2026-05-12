@@ -107,42 +107,6 @@ export function createMessagesTransformHandler(args: {
       output,
     )
 
-    await runMessagesTransformHookSafely(
-      "teamModeStatusInjector",
-      args.hooks.teamModeStatusInjector?.[
-        "experimental.chat.messages.transform"
-      ],
-      input,
-      output,
-    )
-
-    await runMessagesTransformHookSafely(
-      "teamMailboxInjector",
-      args.hooks.teamMailboxInjector?.[
-        "experimental.chat.messages.transform"
-      ],
-      input,
-      output,
-    )
-
-    await runMessagesTransformHookSafely(
-      "thinkingBlockValidator",
-      args.hooks.thinkingBlockValidator?.[
-        "experimental.chat.messages.transform"
-      ],
-      input,
-      output,
-    )
-
-    await runMessagesTransformHookSafely(
-      "toolPairValidator",
-      args.hooks.toolPairValidator?.[
-        "experimental.chat.messages.transform"
-      ],
-      input,
-      output,
-    )
-
     ensureUserTurnAfterAssistantTail(output)
   }
 }

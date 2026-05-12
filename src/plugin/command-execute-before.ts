@@ -1,5 +1,4 @@
 import type { CreatedHooks } from "../create-hooks"
-import { parseRalphLoopArguments } from "../hooks/ralph-loop/command-arguments"
 import { log } from "../shared/logger"
 
 type CommandExecuteBeforeInput = {
@@ -35,30 +34,6 @@ export function createCommandExecuteBeforeHandler(args: {
 
     const normalizedCommand = input.command.toLowerCase()
     const sessionID = input.sessionID
-    if (hooks.ralphLoop && sessionID) {
-      if (normalizedCommand === "ralph-loop" || normalizedCommand === "ulw-loop") {
-        const parsedArguments = parseRalphLoopArguments(input.arguments || "")
-        hooks.ralphLoop.startLoop(sessionID, parsedArguments.prompt, {
-          ultrawork: normalizedCommand === "ulw-loop",
-          maxIterations: parsedArguments.maxIterations,
-          completionPromise: parsedArguments.completionPromise,
-          strategy: parsedArguments.strategy,
-        })
-        output.message ??= {}
-        output.message[NATIVE_LOOP_TRIGGERED_FLAG] = true
-        if (hooks.stopContinuationGuard?.isStopped(sessionID)) {
-          hooks.stopContinuationGuard.clear(sessionID)
-          log("[stop-continuation] Stop state cleared by native command", {
-            sessionID,
-            command: normalizedCommand,
-          })
-        }
-      } else if (normalizedCommand === "cancel-ralph") {
-        hooks.ralphLoop.cancelLoop(sessionID)
-        output.message ??= {}
-        output.message[NATIVE_LOOP_TRIGGERED_FLAG] = true
-      }
-    }
 
     if (
       hooks.startWork

@@ -35,7 +35,6 @@ const mockCreateHooks = mock(() => ({
   claudeCodeHooks: undefined,
 }))
 const mockCreatePluginInterface = mock(() => ({}))
-const mockInitializeOpenClaw = mock(async () => {})
 const mockStartTmuxCheck = mock(() => {})
 const mockInstallAgentSortShim = mock(() => {})
 const mockSetAgentSortOrder = mock(() => {})
@@ -102,10 +101,6 @@ function installIndexModuleMocks(): void {
     setAgentSortOrder: mockSetAgentSortOrder,
   }))
 
-  mock.module("./openclaw", () => ({
-    initializeOpenClaw: mockInitializeOpenClaw,
-  }))
-
   mock.module("./tools/interactive-bash", () => ({
     interactive_bash: {},
     startBackgroundCheck: mockStartTmuxCheck,
@@ -135,7 +130,6 @@ describe("oh-my-openagent plugin module", () => {
     mockCreateTools.mockClear()
     mockCreateHooks.mockClear()
     mockCreatePluginInterface.mockClear()
-    mockInitializeOpenClaw.mockClear()
     mockStartTmuxCheck.mockClear()
     mockInstallAgentSortShim.mockClear()
     mockSetAgentSortOrder.mockClear()
@@ -144,42 +138,6 @@ describe("oh-my-openagent plugin module", () => {
   afterEach(() => {
     mock.restore()
   })
-
-  it("starts openclaw during plugin bootstrap when openclaw config exists", async () => {
-    // given
-    const openclawConfig = {
-      enabled: true,
-      gateways: {},
-      hooks: {},
-    }
-    mockLoadPluginConfig.mockReturnValue({
-      openclaw: openclawConfig,
-    })
-
-    // when
-    await pluginModule.server({
-      directory: "/tmp/project",
-      client: {},
-    } as Parameters<typeof pluginModule.server>[0])
-
-    // then
-    expect(mockInitializeOpenClaw).toHaveBeenCalledTimes(1)
-    expect(mockInitializeOpenClaw).toHaveBeenCalledWith(openclawConfig)
-  })
-
-  it("does not start openclaw when openclaw config is absent", async () => {
-    // given
-    mockLoadPluginConfig.mockReturnValue({})
-
-    // when
-    await pluginModule.server({
-      directory: "/tmp/project",
-      client: {},
-    } as Parameters<typeof pluginModule.server>[0])
-
-    // then
-    expect(mockInitializeOpenClaw).not.toHaveBeenCalled()
-  }, { timeout: 15000 })
 
   it("exports a V1 PluginModule shape with id and server", () => {
     // given the plugin module is loaded

@@ -37,11 +37,7 @@ import { clearSessionModel, getSessionModel, setSessionModel } from "../shared/s
 import { clearSessionPromptParams } from "../shared/session-prompt-params-state";
 import { deleteSessionTools } from "../shared/session-tools-store";
 import { lspManager } from "../tools";
-import { dispatchOpenClawEvent } from "../openclaw/runtime-dispatch";
-import { createTeamIdleWakeHint } from "../hooks/team-session-events/team-idle-wake-hint";
-import { createTeamLeadOrphanHandler } from "../hooks/team-session-events/team-lead-orphan-handler";
-import { createTeamMemberErrorHandler } from "../hooks/team-session-events/team-member-error-handler";
-import { createTeamMemberStatusHandler } from "../hooks/team-session-events/team-member-status-handler";
+
 
 import type { CreatedHooks } from "../create-hooks";
 import type { Managers } from "../create-managers";
@@ -266,8 +262,6 @@ export function createEventHandler(args: {
   };
 
   const dispatchToHooks = async (input: EventInput): Promise<void> => {
-    await runEventHookSafely("autoUpdateChecker", hooks.autoUpdateChecker?.event, input);
-    await runEventHookSafely("legacyPluginToast", hooks.legacyPluginToast?.event, input);
     await runEventHookSafely("claudeCodeHooks", hooks.claudeCodeHooks?.event, input);
     await runEventHookSafely("backgroundNotificationHook", hooks.backgroundNotificationHook?.event, input);
     await runEventHookSafely("sessionNotification", hooks.sessionNotification, input);
@@ -288,7 +282,6 @@ export function createEventHandler(args: {
     await runEventHookSafely("agentUsageReminder", hooks.agentUsageReminder?.event, input);
     await runEventHookSafely("categorySkillReminder", hooks.categorySkillReminder?.event, input);
     await runEventHookSafely("interactiveBashSession", hooks.interactiveBashSession?.event, input as EventInput);
-    await runEventHookSafely("ralphLoop", hooks.ralphLoop?.event, input);
     await runEventHookSafely("stopContinuationGuard", hooks.stopContinuationGuard?.event, input);
     await runEventHookSafely("compactionContextInjector", hooks.compactionContextInjector?.event, input);
     await runEventHookSafely("compactionTodoPreserver", hooks.compactionTodoPreserver?.event, input);
@@ -301,26 +294,6 @@ export function createEventHandler(args: {
   const recentRealIdles = new Map<string, number>();
   const recentAnyIdles = new Map<string, number>();
   const DEDUP_WINDOW_MS = 500;
-  const teamModeConfig = pluginConfig.team_mode?.enabled ? pluginConfig.team_mode : undefined;
-  const teamLeadOrphanHandler = teamModeConfig
-    ? createTeamLeadOrphanHandler(teamModeConfig, managers.tmuxSessionManager, managers.backgroundManager)
-    : undefined;
-  const teamMemberErrorHandler = teamModeConfig
-    ? createTeamMemberErrorHandler(teamModeConfig)
-    : undefined;
-  const teamMemberStatusHandler = teamModeConfig
-    ? createTeamMemberStatusHandler(teamModeConfig)
-    : undefined;
-  const teamIdleWakeHint = teamModeConfig && pluginContext.client.session?.promptAsync
-    ? createTeamIdleWakeHint({
-        directory: pluginContext.directory,
-        client: {
-          session: {
-            promptAsync: pluginContext.client.session.promptAsync,
-          },
-        },
-      }, teamModeConfig)
-    : undefined;
   const TMUX_ACTIVITY_EVENT_TYPES = new Set([
     "message.updated",
     "message.part.updated",
@@ -445,17 +418,6 @@ export function createEventHandler(args: {
         return;
       }
       await dispatchToHooks(syntheticIdle as EventInput);
-      if (pluginConfig.openclaw) {
-        await dispatchOpenClawEvent({
-          config: pluginConfig.openclaw,
-          rawEvent: "session.idle",
-          context: {
-            sessionId: sessionID,
-            projectPath: pluginContext.directory,
-            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(sessionID) ?? process.env.TMUX_PANE,
-          },
-        });
-      }
     }
 
     const { event } = input;
@@ -489,17 +451,6 @@ export function createEventHandler(args: {
 
       // Skip subagent sessions — they are dispatched by specialized callbacks
       // in create-managers.ts (async) and tool-registry.ts (sync)
-      if (pluginConfig.openclaw && sessionInfo?.id && !isSubagentSession) {
-        await dispatchOpenClawEvent({
-          config: pluginConfig.openclaw,
-          rawEvent: event.type,
-          context: {
-            sessionId: sessionInfo.id,
-            projectPath: pluginContext.directory,
-            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(sessionInfo.id) ?? process.env.TMUX_PANE,
-          },
-        });
-      }
     }
 
     if (event.type === "session.deleted") {
@@ -525,17 +476,6 @@ export function createEventHandler(args: {
         clearSessionModel(sessionInfo.id);
         clearSessionPromptParams(sessionInfo.id);
         syncSubagentSessions.delete(sessionInfo.id);
-        if (pluginConfig.openclaw) {
-          await dispatchOpenClawEvent({
-            config: pluginConfig.openclaw,
-            rawEvent: event.type,
-            context: {
-              sessionId: sessionInfo.id,
-              projectPath: pluginContext.directory,
-              tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(sessionInfo.id) ?? process.env.TMUX_PANE,
-            },
-          });
-        }
         if (wasSyncSubagentSession) {
           subagentSessions.delete(sessionInfo.id);
         }
@@ -549,8 +489,6 @@ export function createEventHandler(args: {
         }
       }
 
-      await runEventHookSafely("teamLeadOrphanHandler", teamLeadOrphanHandler, input);
-      await runEventHookSafely("teamMemberStatusHandler", teamMemberStatusHandler, input);
     }
 
     if (event.type === "message.removed") {
@@ -559,25 +497,8 @@ export function createEventHandler(args: {
       restoreBackgroundOutputConsumption(sessionID, messageID);
     }
 
-    if (event.type === "session.idle" && pluginConfig.openclaw) {
-      const sessionID = props?.sessionID as string | undefined;
-      if (sessionID) {
-        await dispatchOpenClawEvent({
-          config: pluginConfig.openclaw,
-          rawEvent: event.type,
-          context: {
-            sessionId: sessionID,
-            projectPath: pluginContext.directory,
-            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(sessionID) ?? process.env.TMUX_PANE,
-          },
-        });
-      }
-    }
-
     if (event.type === "session.idle") {
       managers.tmuxSessionManager?.onEvent?.(event);
-      await runEventHookSafely("teamIdleWakeHint", teamIdleWakeHint, input);
-      await runEventHookSafely("teamMemberStatusHandler", teamMemberStatusHandler, input);
     }
 
     if (event.type === "message.updated") {
@@ -822,7 +743,6 @@ export function createEventHandler(args: {
         log("[event] model-fallback error in session.error:", { sessionID, error: err });
       }
 
-      await runEventHookSafely("teamMemberErrorHandler", teamMemberErrorHandler, input);
     }
   };
 }

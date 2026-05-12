@@ -59,18 +59,6 @@ describe("run telemetry isolation", () => {
         restore: mock(() => {}),
       })),
     }))
-    mock.module("../../shared/posthog", () => ({
-      createCliPostHog: mock(() => ({
-        trackActive: () => {
-          throw new Error("telemetry failed")
-        },
-        shutdown: mock(async () => {
-          throw new Error("shutdown failed")
-        }),
-      })),
-      getPostHogDistinctId: mock(() => "run-distinct-id"),
-    }))
-
     const { run } = await import(`./runner?telemetry=${Date.now()}-${Math.random()}`)
 
     // when

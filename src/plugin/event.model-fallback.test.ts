@@ -167,7 +167,7 @@ describe("createEventHandler - model fallback", () => {
         claudeCodeHooks: null,
         autoSlashCommand: null,
         startWork: null,
-        ralphLoop: null,
+
       } as any,
     })
 
@@ -377,7 +377,7 @@ describe("createEventHandler - model fallback", () => {
         claudeCodeHooks: null,
         autoSlashCommand: null,
         startWork: null,
-        ralphLoop: null,
+
       } as any,
     })
 
@@ -506,7 +506,7 @@ describe("createEventHandler - model fallback", () => {
         claudeCodeHooks: null,
         autoSlashCommand: null,
         startWork: null,
-        ralphLoop: null,
+
       } as any,
     })
 

@@ -6,7 +6,6 @@ import { randomUUID } from "node:crypto"
 
 import { createChatMessageHandler } from "./chat-message"
 import { createAutoSlashCommandHook } from "../hooks/auto-slash-command"
-import { createKeywordDetectorHook } from "../hooks/keyword-detector"
 import { createStartWorkHook } from "../hooks/start-work"
 import { readBoulderState } from "../features/boulder-state"
 import { _resetForTesting, setMainSession, subagentSessions, registerAgentName, updateSessionAgent, getSessionAgent } from "../features/claude-code-session-state"
@@ -69,7 +68,6 @@ function createMockHandlerArgs(overrides?: {
       claudeCodeHooks: null,
       autoSlashCommand: null,
       startWork: null,
-      ralphLoop: null,
     } as any,
     _appliedSessions: appliedSessions,
   }
@@ -271,66 +269,6 @@ describe("createChatMessageHandler - stop continuation clearing for raw slash fa
     expect(stopContinuationGuard.clearCalls).toEqual(["test-session"])
   })
 
-  test("clears stop state before raw /ulw-loop resumes work through chat.message", async () => {
-    // given
-    const stopContinuationGuard = createStopContinuationGuardMock(true)
-    const startLoopCalls: Array<{ sessionID: string; prompt: string; ultrawork: boolean }> = []
-    const args = createMockHandlerArgs()
-    args.hooks.stopContinuationGuard = stopContinuationGuard.guard
-    args.hooks.ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: { ultrawork?: boolean }) => {
-        startLoopCalls.push({ sessionID, prompt, ultrawork: options?.ultrawork === true })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const handler = createChatMessageHandler(args)
-    const output: ChatMessageHandlerOutput = {
-      message: {},
-      parts: [{ type: "text", text: "/ulw-loop ship it" }],
-    }
-
-    // when
-    await handler(createMockInput("sisyphus"), output)
-
-    // then
-    expect(startLoopCalls).toEqual([
-      { sessionID: "test-session", prompt: "ship it", ultrawork: true },
-    ])
-    expect(stopContinuationGuard.isStoppedCalls).toEqual(["test-session"])
-    expect(stopContinuationGuard.clearCalls).toEqual(["test-session"])
-  })
-
-  test("clears stop state before raw /ralph-loop resumes work through chat.message", async () => {
-    // given
-    const stopContinuationGuard = createStopContinuationGuardMock(true)
-    const startLoopCalls: Array<{ sessionID: string; prompt: string; ultrawork: boolean }> = []
-    const args = createMockHandlerArgs()
-    args.hooks.stopContinuationGuard = stopContinuationGuard.guard
-    args.hooks.ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: { ultrawork?: boolean }) => {
-        startLoopCalls.push({ sessionID, prompt, ultrawork: options?.ultrawork === true })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const handler = createChatMessageHandler(args)
-    const output: ChatMessageHandlerOutput = {
-      message: {},
-      parts: [{ type: "text", text: "/ralph-loop keep going" }],
-    }
-
-    // when
-    await handler(createMockInput("sisyphus"), output)
-
-    // then
-    expect(startLoopCalls).toEqual([
-      { sessionID: "test-session", prompt: "keep going", ultrawork: false },
-    ])
-    expect(stopContinuationGuard.isStoppedCalls).toEqual(["test-session"])
-    expect(stopContinuationGuard.clearCalls).toEqual(["test-session"])
-  })
-
   test("does not clear stop state for ordinary stopped chat messages", async () => {
     // given
     const stopContinuationGuard = createStopContinuationGuardMock(true)
@@ -355,184 +293,6 @@ describe("createChatMessageHandler - stop continuation clearing for raw slash fa
     expect(stopContinuationGuard.isStoppedCalls).toHaveLength(0)
     expect(stopContinuationGuard.clearCalls).toHaveLength(0)
   })
-
-  test("does not clear stop state when the session was not stopped", async () => {
-    // given
-    const stopContinuationGuard = createStopContinuationGuardMock(false)
-    const startWorkCalls: string[] = []
-    const startLoopCalls: Array<{ sessionID: string; prompt: string; ultrawork: boolean }> = []
-    const args = createMockHandlerArgs()
-    args.hooks.stopContinuationGuard = stopContinuationGuard.guard
-    args.hooks.startWork = {
-      "chat.message": async (input: { sessionID: string }) => {
-        startWorkCalls.push(input.sessionID)
-      },
-    }
-    args.hooks.ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: { ultrawork?: boolean }) => {
-        startLoopCalls.push({ sessionID, prompt, ultrawork: options?.ultrawork === true })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const handler = createChatMessageHandler(args)
-
-    // when
-    await handler(createMockInput("sisyphus"), {
-      message: {},
-      parts: createStartWorkTemplateOutput().parts,
-    })
-    await handler(createMockInput("sisyphus"), {
-      message: {},
-      parts: [{ type: "text", text: "/ulw-loop continue" }],
-    })
-    await handler(createMockInput("sisyphus"), {
-      message: {},
-      parts: [{ type: "text", text: "/ralph-loop continue" }],
-    })
-
-    // then
-    expect(startWorkCalls).toEqual([
-      "test-session",
-      "test-session",
-      "test-session",
-    ])
-    expect(startLoopCalls).toEqual([
-      { sessionID: "test-session", prompt: "continue", ultrawork: true },
-      { sessionID: "test-session", prompt: "continue", ultrawork: false },
-    ])
-    expect(stopContinuationGuard.isStoppedCalls).toEqual([
-      "test-session",
-      "test-session",
-      "test-session",
-    ])
-    expect(stopContinuationGuard.clearCalls).toHaveLength(0)
-  })
-})
-
-describe("createChatMessageHandler - /ulw-loop raw slash fallback", () => {
-  test("starts ultrawork loop when /ulw-loop arrives through chat.message without native command expansion", async () => {
-    // given
-    const startLoopCalls: Array<{
-      sessionID: string
-      prompt: string
-      options: Record<string, unknown>
-    }> = []
-    const args = createMockHandlerArgs()
-    args.hooks.autoSlashCommand = createAutoSlashCommandHook({ skills: [] })
-    args.hooks.ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: Record<string, unknown>) => {
-        startLoopCalls.push({ sessionID, prompt, options: options ?? {} })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const handler = createChatMessageHandler(args)
-    const input = createMockInput("sisyphus")
-    const output: ChatMessageHandlerOutput = {
-      message: {},
-      parts: [{ type: "text", text: '/ulw-loop "Ship feature" --strategy=continue' }],
-    }
-
-    // when
-    await handler(input, output)
-
-    // then
-    expect(startLoopCalls).toEqual([
-      {
-        sessionID: "test-session",
-        prompt: "Ship feature",
-        options: {
-          ultrawork: true,
-          maxIterations: undefined,
-          completionPromise: undefined,
-          strategy: "continue",
-        },
-      },
-    ])
-  })
-
-  test("starts ultrawork loop when injected messages appear before the raw /ulw-loop command", async () => {
-    // given
-    const startLoopCalls: Array<{
-      sessionID: string
-      prompt: string
-      options: Record<string, unknown>
-    }> = []
-    const args = createMockHandlerArgs()
-    args.hooks.ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: Record<string, unknown>) => {
-        startLoopCalls.push({ sessionID, prompt, options: options ?? {} })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const handler = createChatMessageHandler(args)
-    const input = createMockInput("sisyphus")
-    const output: ChatMessageHandlerOutput = {
-      message: {},
-      parts: [
-        {
-          type: "text",
-          text: "[BACKGROUND TASK COMPLETED]\nPlan finished.\n\n---\n\n/ulw-loop \"Ship feature\" --strategy=continue",
-        },
-      ],
-    }
-
-    // when
-    await handler(input, output)
-
-    // then
-    expect(startLoopCalls).toEqual([
-      {
-        sessionID: "test-session",
-        prompt: "Ship feature",
-        options: {
-          ultrawork: true,
-          maxIterations: undefined,
-          completionPromise: undefined,
-          strategy: "continue",
-        },
-      },
-    ])
-  })
-})
-
-describe("createChatMessageHandler - plain ultrawork keyword routing", () => {
-  test("does not start ralph loop when plain ulw text flows through the full chat.message pipeline", async () => {
-    // given
-    setMainSession("test-session")
-    const startLoopCalls: Array<{
-      sessionID: string
-      prompt: string
-      options: Record<string, unknown>
-    }> = []
-    const ralphLoop = {
-      startLoop: (sessionID: string, prompt: string, options?: Record<string, unknown>) => {
-        startLoopCalls.push({ sessionID, prompt, options: options ?? {} })
-        return true
-      },
-      cancelLoop: () => true,
-    }
-    const args = createMockHandlerArgs()
-    args.hooks.ralphLoop = ralphLoop
-    args.hooks.keywordDetector = createKeywordDetectorHook(args.ctx as never, undefined, ralphLoop)
-    const handler = createChatMessageHandler(args)
-    const input = createMockInput("sisyphus")
-    const output: ChatMessageHandlerOutput = {
-      message: {},
-      parts: [{ type: "text", text: "ulw fix the flaky keyword tests" }],
-    }
-
-    // when
-    await handler(input, output)
-
-    // then
-    expect(startLoopCalls).toHaveLength(0)
-    expect(output.parts[0]?.text).toContain("ULTRAWORK MODE ENABLED!")
-    expect(output.parts[0]?.text).toContain("ulw fix the flaky keyword tests")
-  })
-})
 
 function createMockInput(agent?: string, model?: { providerID: string; modelID: string }) {
   return {

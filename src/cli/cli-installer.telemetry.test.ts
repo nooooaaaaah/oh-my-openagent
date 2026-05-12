@@ -36,16 +36,6 @@ describe("runCliInstaller telemetry isolation", () => {
       }),
     ]
 
-    mock.module("../shared/posthog", () => ({
-      createCliPostHog: mock(() => ({
-        trackActive: mock(() => {}),
-        shutdown: mock(async () => {
-          throw new Error("shutdown failed")
-        }),
-      })),
-      getPostHogDistinctId: mock(() => "install-distinct-id"),
-    }))
-
     const { runCliInstaller } = await import(`./cli-installer?telemetry=${Date.now()}-${Math.random()}`)
     const args: InstallArgs = {
       tui: false,

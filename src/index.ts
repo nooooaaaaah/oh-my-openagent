@@ -7,7 +7,7 @@ import { createHooks } from "./create-hooks"
 import { createManagers } from "./create-managers"
 import { createRuntimeTmuxConfig, isTmuxIntegrationEnabled } from "./create-runtime-tmux-config"
 import { createTools } from "./create-tools"
-import { initializeOpenClaw } from "./openclaw"
+
 import { createPluginInterface } from "./plugin-interface"
 import {
   createCompactionAutocontinueHandler,
@@ -45,25 +45,6 @@ const serverPlugin: Plugin = async (input, _options): Promise<Hooks> => {
   const pluginConfig = loadPluginConfig(input.directory, input)
   setAgentSortOrder(pluginConfig.agent_order)
 
-  if (pluginConfig.openclaw) {
-    await initializeOpenClaw(pluginConfig.openclaw)
-  }
-  if (pluginConfig.team_mode?.enabled) {
-    const teamModeConfig = pluginConfig.team_mode
-    try {
-      const { ensureBaseDirs, resolveBaseDir } = await import("./features/team-mode/team-registry/paths")
-      const { checkTeamModeDependencies } = await import("./features/team-mode/deps")
-      await checkTeamModeDependencies(teamModeConfig)
-      await ensureBaseDirs(resolveBaseDir(teamModeConfig))
-      if (pluginConfig.disabled_skills?.includes("team-mode")) {
-        console.warn(
-          "[team-mode] enabled=true but team-mode skill is disabled; skill docs hidden but tools still registered (D-29)",
-        )
-      }
-    } catch (err) {
-      console.warn("[team-mode] init failed:", err)
-    }
-  }
   const tmuxIntegrationEnabled = isTmuxIntegrationEnabled(pluginConfig)
   if (tmuxIntegrationEnabled) {
     startTmuxCheck()

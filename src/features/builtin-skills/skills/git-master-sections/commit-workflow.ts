@@ -168,26 +168,23 @@ FORMULA: min_commits = ceil(file_count / 3)
 **RULE: Different directories = Different commits (almost always)**
 
 \`\`\`
-Example: 8 changed files
-  - app/[locale]/page.tsx
-  - app/[locale]/layout.tsx
+Example: 6 changed files
+  - app/page.tsx
+  - app/layout.tsx
   - components/demo/browser-frame.tsx
   - components/demo/shopify-full-site.tsx
   - components/pricing/pricing-table.tsx
   - e2e/navbar.spec.ts
-  - messages/en.json
-  - messages/ko.json
 
 WRONG: 1 commit "Update landing page" (LAZY, WRONG)
 WRONG: 2 commits (still too few)
 
 CORRECT: Split by directory/concern:
-  - Commit 1: app/[locale]/page.tsx + layout.tsx (app layer)
+  - Commit 1: app/page.tsx + layout.tsx (app layer)
   - Commit 2: components/demo/* (demo components)
   - Commit 3: components/pricing/* (pricing components)
   - Commit 4: e2e/* (tests)
-  - Commit 5: messages/* (i18n)
-  = 5 commits from 8 files (CORRECT)
+  = 4 commits from 6 files (CORRECT)
 \`\`\`
 
 ### 3.2 Split by Concern SECOND (Secondary Split)

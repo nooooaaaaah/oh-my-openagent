@@ -7,7 +7,7 @@ export const HookNameSchema = z.enum([
   "session-notification",
   "comment-checker",
   "tool-output-truncator",
-  "question-label-truncator",
+
   "directory-agents-injector",
   "directory-readme-injector",
   "empty-task-response-detector",
@@ -17,16 +17,14 @@ export const HookNameSchema = z.enum([
   "preemptive-compaction",
   "rules-injector",
   "background-notification",
-  "auto-update-checker",
+
   "startup-toast",
   "keyword-detector",
   "agent-usage-reminder",
   "non-interactive-env",
   "interactive-bash-session",
 
-  "thinking-block-validator",
-  "tool-pair-validator",
-  "ralph-loop",
+
   "category-skill-reminder",
 
   "compaction-context-injector",
@@ -38,7 +36,7 @@ export const HookNameSchema = z.enum([
   "delegate-task-retry",
   "prometheus-md-only",
   "sisyphus-junior-notepad",
-  "team-tool-gating",
+
   "no-sisyphus-gpt",
   "no-hephaestus-non-gpt",
   "start-work",
@@ -53,10 +51,7 @@ export const HookNameSchema = z.enum([
   "anthropic-effort",
   "hashline-read-enhancer",
   "read-image-resizer",
-  "todo-description-override",
-  "webfetch-redirect-guard",
-  "fsync-skip-warning",
-  "legacy-plugin-toast",
+
 ])
 
 export type HookName = z.infer<typeof HookNameSchema>

@@ -72,7 +72,6 @@ export async function createBuiltinAgents(
   disabledSkills?: Set<string>,
   useTaskSystem = false,
   disableOmoEnv = false,
-  teamModeEnabled = false,
 ): Promise<Record<string, AgentConfig>> {
 
   const connectedProviders = readConnectedProvidersCache()
@@ -100,7 +99,7 @@ export async function createBuiltinAgents(
     description: categories?.[name]?.description ?? CATEGORY_DESCRIPTIONS[name] ?? "General tasks",
   }))
 
-  const availableSkills = buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills, teamModeEnabled)
+  const availableSkills = buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills)
 
   // Collect general agents first (for availableAgents), but don't add to result yet
   const { pendingAgentConfigs, availableAgents } = collectPendingBuiltinAgents({
@@ -117,7 +116,6 @@ export async function createBuiltinAgents(
     availableModels,
     isFirstRunNoCache,
     disabledSkills,
-    teamModeEnabled,
     disableOmoEnv,
   })
 

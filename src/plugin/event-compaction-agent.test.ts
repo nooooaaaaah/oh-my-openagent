@@ -40,7 +40,7 @@ function createMinimalEventHandler() {
       agentUsageReminder: { event: async () => {} },
       categorySkillReminder: { event: async () => {} },
       interactiveBashSession: { event: async () => {} },
-      ralphLoop: { event: async () => {} },
+
       stopContinuationGuard: { event: async () => {}, isStopped: () => false },
       compactionTodoPreserver: { event: async () => {} },
       writeExistingFileGuard: { event: async () => {} },

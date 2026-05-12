@@ -1,4 +1,4 @@
-# src/features/builtin-skills/ — 10 Built-in Skill Files
+# src/features/builtin-skills/ — 9 Built-in Skill Files
 
 **Generated:** 2026-05-08
 
@@ -11,7 +11,7 @@ Skills shipped inside the plugin (always available, no install). Registered via 
 ```
 builtin-skills/
 ├── index.ts              # Barrel exports
-├── skills.ts             # createBuiltinSkills() factory — registers all 10 below
+├── skills.ts             # createBuiltinSkills() factory — registers all 9 below
 ├── types.ts              # BuiltinSkill interface
 ├── skills/
 │   ├── git-master.ts                  # 1111 LOC
@@ -22,7 +22,6 @@ builtin-skills/
 │   ├── frontend-ui-ux.ts              # Design-first UI guidance
 │   ├── review-work.ts                 # 5-agent post-implementation review
 │   ├── ai-slop-remover.ts             # Remove AI-generated code patterns
-│   ├── team-mode.ts                   # 12 team_* tool documentation (gated)
 │   ├── git-master-sections/           # Git-master prompt sub-sections
 │   └── index.ts                       # skill barrel
 ├── git-master/                        # Resources for git-master skill
@@ -43,7 +42,6 @@ builtin-skills/
 | `frontend-ui-ux` | 79 | — | Design-first UI development guidance |
 | `review-work` | ~500 | — | Post-implementation review orchestrator (5 parallel agents) |
 | `ai-slop-remover` | ~300 | — | Remove AI-generated code smells |
-| `team-mode` | — | — | **Conditional** — only loaded when `team_mode.enabled`; documents the 12 `team_*` tools and lifecycle |
 
 ## BROWSER VARIANT SELECTION
 
@@ -56,21 +54,6 @@ Config `browser_automation_engine` selects which browser skill loads:
 | `"agent-browser"` | agent-browser (in playwright.ts) |
 
 Only one browser skill is active per session — non-selected variants are skipped.
-
-## TEAM-MODE SKILL GATING
-
-The `team-mode` skill is registered unconditionally but only **rendered** when `team_mode.enabled: true`:
-
-```typescript
-// skills/team-mode.ts (paraphrase)
-const teamModeSkill: BuiltinSkill = {
-  name: "team-mode",
-  shouldLoad: (config) => config.team_mode?.enabled === true,
-  // ...
-}
-```
-
-When disabled, the skill is filtered out before agent prompt assembly so agents do not see `team_*` tool docs they cannot use.
 
 ## ADDING A NEW BUILT-IN SKILL
 

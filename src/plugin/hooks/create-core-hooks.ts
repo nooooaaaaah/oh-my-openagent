@@ -42,7 +42,6 @@ export function createCoreHooks(args: {
     pluginConfig,
     isHookEnabled: (name) => isHookEnabled(name as HookName),
     safeHookEnabled,
-    ralphLoop: session.ralphLoop,
   })
 
   return {

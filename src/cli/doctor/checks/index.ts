@@ -4,8 +4,6 @@ import { checkSystem, gatherSystemInfo } from "./system"
 import { checkConfig } from "./config"
 import { checkTools, gatherToolsSummary } from "./tools"
 import { checkModels } from "./model-resolution"
-import { checkTeamMode } from "./team-mode"
-
 export type { CheckDefinition }
 export * from "./model-resolution-types"
 export { gatherSystemInfo, gatherToolsSummary }
@@ -32,11 +30,6 @@ export function getAllCheckDefinitions(): CheckDefinition[] {
       id: CHECK_IDS.MODELS,
       name: CHECK_NAMES[CHECK_IDS.MODELS],
       check: checkModels,
-    },
-    {
-      id: CHECK_IDS.TEAM_MODE,
-      name: CHECK_NAMES[CHECK_IDS.TEAM_MODE],
-      check: checkTeamMode,
     },
   ]
 }

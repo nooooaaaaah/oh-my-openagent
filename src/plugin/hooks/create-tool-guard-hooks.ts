@@ -15,10 +15,6 @@ import {
   createHashlineReadEnhancerHook,
   createReadImageResizerHook,
   createJsonErrorRecoveryHook,
-  createTodoDescriptionOverrideHook,
-  createWebFetchRedirectGuardHook,
-  createTeamToolGating,
-  createFsyncSkipWarningHook,
 } from "../../hooks"
 import {
   getOpenCodeVersion,
@@ -41,10 +37,6 @@ export type ToolGuardHooks = {
   hashlineReadEnhancer: ReturnType<typeof createHashlineReadEnhancerHook> | null
   jsonErrorRecovery: ReturnType<typeof createJsonErrorRecoveryHook> | null
   readImageResizer: ReturnType<typeof createReadImageResizerHook> | null
-  todoDescriptionOverride: ReturnType<typeof createTodoDescriptionOverrideHook> | null
-  webfetchRedirectGuard: ReturnType<typeof createWebFetchRedirectGuardHook> | null
-  fsyncSkipWarning: ReturnType<typeof createFsyncSkipWarningHook> | null
-  teamToolGating: ReturnType<typeof createTeamToolGating> | null
 }
 
 export function createToolGuardHooks(args: {
@@ -129,22 +121,6 @@ export function createToolGuardHooks(args: {
     ? safeHook("read-image-resizer", () => createReadImageResizerHook(ctx))
     : null
 
-  const todoDescriptionOverride = isHookEnabled("todo-description-override")
-    ? safeHook("todo-description-override", () => createTodoDescriptionOverrideHook())
-    : null
-
-  const webfetchRedirectGuard = isHookEnabled("webfetch-redirect-guard")
-    ? safeHook("webfetch-redirect-guard", () => createWebFetchRedirectGuardHook(ctx))
-    : null
-
-  const teamToolGating = isHookEnabled("team-tool-gating")
-    ? safeHook("team-tool-gating", () => createTeamToolGating(ctx, pluginConfig.team_mode))
-    : null
-
-  const fsyncSkipWarning = isHookEnabled("fsync-skip-warning")
-    ? safeHook("fsync-skip-warning", () => createFsyncSkipWarningHook())
-    : null
-
   return {
     commentChecker,
     toolOutputTruncator,
@@ -158,9 +134,5 @@ export function createToolGuardHooks(args: {
     hashlineReadEnhancer,
     jsonErrorRecovery,
     readImageResizer,
-    todoDescriptionOverride,
-    webfetchRedirectGuard,
-    fsyncSkipWarning,
-    teamToolGating,
   }
 }

@@ -25,7 +25,6 @@ function createMinimalEventHandler() {
       },
     } as never,
     hooks: {
-      autoUpdateChecker: { event: async () => {} },
       claudeCodeHooks: { event: async () => {} },
       backgroundNotificationHook: { event: async () => {} },
       sessionNotification: async () => {},
@@ -42,7 +41,6 @@ function createMinimalEventHandler() {
       agentUsageReminder: { event: async () => {} },
       categorySkillReminder: { event: async () => {} },
       interactiveBashSession: { event: async () => {} },
-      ralphLoop: { event: async () => {} },
       stopContinuationGuard: { event: async () => {}, isStopped: () => false },
       compactionTodoPreserver: { event: async () => {} },
       writeExistingFileGuard: { event: async () => {} },

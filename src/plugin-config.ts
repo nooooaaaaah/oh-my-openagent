@@ -218,7 +218,6 @@ export function mergeConfigs(
     ...override,
     agents: deepMerge(base.agents, override.agents),
     categories: deepMerge(base.categories, override.categories),
-    team_mode: deepMerge(base.team_mode, override.team_mode),
     agent_definitions: [
       ...new Set([
         ...(base.agent_definitions ?? []),

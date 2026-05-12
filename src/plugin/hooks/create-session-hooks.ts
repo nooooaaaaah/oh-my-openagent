@@ -11,11 +11,9 @@ import {
   createThinkModeHook,
   createModelFallbackHook,
   createAnthropicContextWindowLimitRecoveryHook,
-  createAutoUpdateCheckerHook,
   createAgentUsageReminderHook,
   createNonInteractiveEnvHook,
   createInteractiveBashSessionHook,
-  createRalphLoopHook,
   createEditErrorRecoveryHook,
   createDelegateTaskRetryHook,
   createTaskResumeInfoHook,
@@ -24,10 +22,8 @@ import {
   createSisyphusJuniorNotepadHook,
   createNoSisyphusGptHook,
   createNoHephaestusNonGptHook,
-  createQuestionLabelTruncatorHook,
   createPreemptiveCompactionHook,
   createRuntimeFallbackHook,
-  createLegacyPluginToastHook,
 } from "../../hooks"
 import { createAnthropicEffortHook } from "../../hooks/anthropic-effort"
 import {
@@ -48,11 +44,9 @@ export type SessionHooks = {
   thinkMode: ReturnType<typeof createThinkModeHook> | null
   modelFallback: ReturnType<typeof createModelFallbackHook> | null
   anthropicContextWindowLimitRecovery: ReturnType<typeof createAnthropicContextWindowLimitRecoveryHook> | null
-  autoUpdateChecker: ReturnType<typeof createAutoUpdateCheckerHook> | null
   agentUsageReminder: ReturnType<typeof createAgentUsageReminderHook> | null
   nonInteractiveEnv: ReturnType<typeof createNonInteractiveEnvHook> | null
   interactiveBashSession: ReturnType<typeof createInteractiveBashSessionHook> | null
-  ralphLoop: ReturnType<typeof createRalphLoopHook> | null
   editErrorRecovery: ReturnType<typeof createEditErrorRecoveryHook> | null
   delegateTaskRetry: ReturnType<typeof createDelegateTaskRetryHook> | null
   startWork: ReturnType<typeof createStartWorkHook> | null
@@ -60,11 +54,9 @@ export type SessionHooks = {
   sisyphusJuniorNotepad: ReturnType<typeof createSisyphusJuniorNotepadHook> | null
   noSisyphusGpt: ReturnType<typeof createNoSisyphusGptHook> | null
   noHephaestusNonGpt: ReturnType<typeof createNoHephaestusNonGptHook> | null
-  questionLabelTruncator: ReturnType<typeof createQuestionLabelTruncatorHook> | null
   taskResumeInfo: ReturnType<typeof createTaskResumeInfoHook> | null
   anthropicEffort: ReturnType<typeof createAnthropicEffortHook> | null
   runtimeFallback: ReturnType<typeof createRuntimeFallbackHook> | null
-  legacyPluginToast: ReturnType<typeof createLegacyPluginToastHook> | null
 }
 
 export function createSessionHooks(args: {
@@ -184,16 +176,6 @@ export function createSessionHooks(args: {
         createAnthropicContextWindowLimitRecoveryHook(ctx, { experimental: pluginConfig.experimental, pluginConfig }))
     : null
 
-  const autoUpdateChecker = isHookEnabled("auto-update-checker")
-    ? safeHook("auto-update-checker", () =>
-        createAutoUpdateCheckerHook(ctx, {
-          showStartupToast: isHookEnabled("startup-toast"),
-          isSisyphusEnabled: pluginConfig.sisyphus_agent?.disabled !== true,
-          autoUpdate: pluginConfig.auto_update ?? true,
-          modelCapabilities: pluginConfig.model_capabilities,
-        }))
-    : null
-
   const agentUsageReminder = isHookEnabled("agent-usage-reminder")
     ? safeHook("agent-usage-reminder", () => createAgentUsageReminderHook(ctx))
     : null
@@ -206,15 +188,6 @@ export function createSessionHooks(args: {
     isHookEnabled("interactive-bash-session") &&
     isTmuxIntegrationEnabled(pluginConfig)
     ? safeHook("interactive-bash-session", () => createInteractiveBashSessionHook(ctx))
-    : null
-
-  const ralphLoop = isHookEnabled("ralph-loop")
-    ? safeHook("ralph-loop", () =>
-        createRalphLoopHook(ctx, {
-          config: pluginConfig.ralph_loop,
-          checkSessionExists: async (sessionId) => await sessionExists(sessionId),
-          backgroundManager,
-        }))
     : null
 
   const editErrorRecovery = isHookEnabled("edit-error-recovery")
@@ -248,9 +221,6 @@ export function createSessionHooks(args: {
       }))
     : null
 
-  const questionLabelTruncator = isHookEnabled("question-label-truncator")
-    ? safeHook("question-label-truncator", () => createQuestionLabelTruncatorHook())
-    : null
   const taskResumeInfo = isHookEnabled("task-resume-info")
     ? safeHook("task-resume-info", () => createTaskResumeInfoHook())
     : null
@@ -272,10 +242,6 @@ export function createSessionHooks(args: {
         }))
     : null
 
-  const legacyPluginToast = isHookEnabled("legacy-plugin-toast")
-    ? safeHook("legacy-plugin-toast", () => createLegacyPluginToastHook(ctx))
-    : null
-
   return {
     contextWindowMonitor,
     preemptiveCompaction,
@@ -284,11 +250,9 @@ export function createSessionHooks(args: {
     thinkMode,
     modelFallback,
     anthropicContextWindowLimitRecovery,
-    autoUpdateChecker,
     agentUsageReminder,
     nonInteractiveEnv,
     interactiveBashSession,
-    ralphLoop,
     editErrorRecovery,
     delegateTaskRetry,
     startWork,
@@ -296,10 +260,8 @@ export function createSessionHooks(args: {
     sisyphusJuniorNotepad,
     noSisyphusGpt,
     noHephaestusNonGpt,
-    questionLabelTruncator,
     taskResumeInfo,
     anthropicEffort,
     runtimeFallback,
-    legacyPluginToast,
   }
 }

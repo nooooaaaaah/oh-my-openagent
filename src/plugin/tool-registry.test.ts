@@ -1,8 +1,7 @@
-const { beforeEach, describe, expect, mock, spyOn, test } = require("bun:test")
+const { beforeEach, describe, expect, mock, test } = require("bun:test")
 import { tool } from "@opencode-ai/plugin"
 
 import { OhMyOpenCodeConfigSchema, type OhMyOpenCodeConfig } from "../config"
-import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch"
 import type { ToolsRecord } from "./types"
 
 const fakeTool = tool({
@@ -22,26 +21,8 @@ const delegateTaskTool = tool({
 })
 
 const syncSessionCreatedCallbacks: Array<
-  ((event: { sessionID: string; parentID: string; title: string }) => Promise<void>) | undefined
+	((event: { sessionID: string; parentID: string; title: string }) => Promise<void>) | undefined
 > = []
-
-const trackedPaneBySession = new Map<string, string>()
-let dispatchOpenClawEvent: ReturnType<typeof spyOn>
-
-const TEAM_TOOL_NAMES = [
-  "team_create",
-  "team_delete",
-  "team_shutdown_request",
-  "team_approve_shutdown",
-  "team_reject_shutdown",
-  "team_send_message",
-  "team_task_create",
-  "team_task_list",
-  "team_task_update",
-  "team_task_get",
-  "team_status",
-  "team_list",
-] as const
 
 const { createToolRegistry, trimToolsToCap } = await import("./tool-registry")
 
@@ -63,27 +44,13 @@ const toolFactories: NonNullable<Parameters<typeof createToolRegistry>[0]["toolF
   discoverCommandsSync: mock(() => []),
   interactive_bash: fakeTool,
   createTaskCreateTool: mock(() => fakeTool),
-  createTaskGetTool: mock(() => fakeTool),
-  createTaskList: mock(() => fakeTool),
-  createTaskUpdateTool: mock(() => fakeTool),
-  createHashlineEditTool: mock(() => fakeTool),
-  createTeamApproveShutdownTool: mock(() => fakeTool),
-  createTeamCreateTool: mock(() => fakeTool),
-  createTeamDeleteTool: mock(() => fakeTool),
-  createTeamRejectShutdownTool: mock(() => fakeTool),
-  createTeamShutdownRequestTool: mock(() => fakeTool),
-  createTeamSendMessageTool: mock(() => fakeTool),
-  createTeamTaskCreateTool: mock(() => fakeTool),
-  createTeamTaskGetTool: mock(() => fakeTool),
-  createTeamTaskListTool: mock(() => fakeTool),
-  createTeamTaskUpdateTool: mock(() => fakeTool),
-  createTeamStatusTool: mock(() => fakeTool),
-  createTeamListTool: mock(() => fakeTool),
+	createTaskGetTool: mock(() => fakeTool),
+	createTaskList: mock(() => fakeTool),
+	createTaskUpdateTool: mock(() => fakeTool),
+	createHashlineEditTool: mock(() => fakeTool),
 }
 
-type PluginConfigOverrides = Omit<Partial<OhMyOpenCodeConfig>, "team_mode"> & {
-  team_mode?: Partial<NonNullable<OhMyOpenCodeConfig["team_mode"]>>
-}
+type PluginConfigOverrides = Partial<OhMyOpenCodeConfig>
 
 function createPluginConfig(overrides: PluginConfigOverrides = {}): OhMyOpenCodeConfig {
   return OhMyOpenCodeConfigSchema.parse({
@@ -97,7 +64,6 @@ function createPluginConfig(overrides: PluginConfigOverrides = {}): OhMyOpenCode
 }
 
 beforeEach(() => {
-  dispatchOpenClawEvent = spyOn(openclawRuntimeDispatch, "dispatchOpenClawEvent")
   syncSessionCreatedCallbacks.length = 0
 })
 
@@ -177,68 +143,6 @@ describe("#given task_system configuration", () => {
   })
 })
 
-describe("#given team_mode configuration", () => {
-  test("#when team_mode is enabled #then all 12 team tools are registered", () => {
-    syncSessionCreatedCallbacks.length = 0
-
-    const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
-      pluginConfig: createPluginConfig({
-        team_mode: {
-          enabled: true,
-        },
-      }),
-      managers: {
-        backgroundManager: {},
-        tmuxSessionManager: {},
-        skillMcpManager: {},
-      } as Parameters<typeof createToolRegistry>[0]["managers"],
-      skillContext: {
-        mergedSkills: [],
-        availableSkills: [],
-        browserProvider: "playwright",
-        disabledSkills: new Set(),
-      },
-      availableCategories: [],
-      toolFactories,
-    })
-
-    for (const teamToolName of TEAM_TOOL_NAMES) {
-      expect(result.filteredTools).toHaveProperty(teamToolName)
-    }
-  })
-
-  test("#when team_mode is disabled #then zero team tools are registered", () => {
-    syncSessionCreatedCallbacks.length = 0
-
-    const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
-      pluginConfig: createPluginConfig({
-        team_mode: {
-          enabled: false,
-        },
-      }),
-      managers: {
-        backgroundManager: {},
-        tmuxSessionManager: {},
-        skillMcpManager: {},
-      } as Parameters<typeof createToolRegistry>[0]["managers"],
-      skillContext: {
-        mergedSkills: [],
-        availableSkills: [],
-        browserProvider: "playwright",
-        disabledSkills: new Set(),
-      },
-      availableCategories: [],
-      toolFactories,
-    })
-
-    const registeredTeamToolNames = Object.keys(result.filteredTools).filter((toolName) => toolName.startsWith("team_"))
-
-    expect(registeredTeamToolNames).toHaveLength(0)
-  })
-})
-
 describe("#given tmux integration is disabled", () => {
   test("#when system tmux is available #then interactive_bash remains registered", () => {
     syncSessionCreatedCallbacks.length = 0
@@ -309,64 +213,4 @@ describe("#given tmux integration is disabled", () => {
   })
 })
 
-describe("#given openclaw is enabled for sync task sessions", () => {
-  test("#when the sync session-created callback runs #then it dispatches openclaw with the tracked pane id", async () => {
-    syncSessionCreatedCallbacks.length = 0
-    dispatchOpenClawEvent.mockReset()
-    trackedPaneBySession.clear()
 
-    const tmuxSessionManager = {
-      async onSessionCreated(event: { properties?: { info?: { id?: string } } }): Promise<void> {
-        const sessionID = event.properties?.info?.id
-        if (sessionID) {
-          trackedPaneBySession.set(sessionID, `%pane-${sessionID}`)
-        }
-      },
-      getTrackedPaneId(sessionID: string): string | undefined {
-        return trackedPaneBySession.get(sessionID)
-      },
-    }
-
-    const openclawConfig = {
-      enabled: true,
-      gateways: {},
-      hooks: {},
-    }
-
-    createToolRegistry({
-      ctx: { directory: "/tmp/project" } as Parameters<typeof createToolRegistry>[0]["ctx"],
-      pluginConfig: createPluginConfig({ openclaw: openclawConfig }),
-      managers: {
-        backgroundManager: {},
-        tmuxSessionManager,
-        skillMcpManager: {},
-      } as Parameters<typeof createToolRegistry>[0]["managers"],
-      skillContext: {
-        mergedSkills: [],
-        availableSkills: [],
-        browserProvider: "playwright",
-        disabledSkills: new Set(),
-      },
-      availableCategories: [],
-      toolFactories,
-    })
-
-    const onSyncSessionCreated = syncSessionCreatedCallbacks[syncSessionCreatedCallbacks.length - 1]
-    await onSyncSessionCreated?.({
-      sessionID: "ses-sync-1",
-      parentID: "ses-parent",
-      title: "sync task",
-    })
-
-    expect(dispatchOpenClawEvent).toHaveBeenCalledTimes(1)
-    expect(dispatchOpenClawEvent).toHaveBeenCalledWith({
-      config: openclawConfig,
-      rawEvent: "session.created",
-      context: {
-        sessionId: "ses-sync-1",
-        projectPath: "/tmp/project",
-        tmuxPaneId: "%pane-ses-sync-1",
-      },
-    })
-  })
-})

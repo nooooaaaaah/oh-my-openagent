@@ -58,7 +58,6 @@ function createChatMessageHandlerHooks(modelFallback: ReturnType<typeof createMo
 		claudeCodeHooks: null,
 		autoSlashCommand: null,
 		startWork: null,
-		ralphLoop: null,
 	} as unknown as ChatMessageHandlerArgs["hooks"]
 }
 

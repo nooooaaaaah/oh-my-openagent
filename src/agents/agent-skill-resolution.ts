@@ -10,7 +10,6 @@ export function resolveAgentSkills(
     gitMasterConfig?: GitMasterConfig
     browserProvider?: BrowserAutomationProvider
     disabledSkills?: Set<string>
-    teamModeEnabled?: boolean
   } = {}
 ): AgentConfig {
   const { skills, ...configWithoutSkills } = config as AgentConfigWithSkills

@@ -73,9 +73,6 @@ function installModuleMocks(): void {
       clear: () => {},
     })),
   }))
-  mock.module("./openclaw", () => ({
-    initializeOpenClaw: mock(async () => {}),
-  }))
   mock.module("./tools/interactive-bash", () => ({
     interactive_bash: {},
     startBackgroundCheck: mock(() => {}),

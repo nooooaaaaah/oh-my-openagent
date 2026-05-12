@@ -1,10 +1,7 @@
 import { recoverToolMetadata } from "../features/tool-metadata-store"
 import type { CreatedHooks } from "../create-hooks"
 import { log } from "../shared/logger"
-import { stripInvisibleAgentCharacters } from "../shared/agent-display-names"
 import type { PluginContext } from "./types"
-
-const VERIFICATION_ATTEMPT_PATTERN = /<ulw_verification_attempt_id>(.*?)<\/ulw_verification_attempt_id>/i
 
 function getMetadataString(metadata: Record<string, unknown> | undefined, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -78,62 +75,6 @@ export function createToolExecuteAfterHandler(args: {
       })
     }
 
-    if (input.tool === "task") {
-      const directory = getPluginDirectory(ctx)
-      const sessionId = getMetadataString(output.metadata, ["sessionId", "sessionID", "session_id"])
-      const agent = getMetadataString(output.metadata, ["agent"])
-      const prompt = getMetadataString(output.metadata, ["prompt"])
-      const verificationAttemptId = prompt?.match(VERIFICATION_ATTEMPT_PATTERN)?.[1]?.trim()
-      const loopState = directory
-        ? (await import("../hooks/ralph-loop/storage")).readState(directory)
-        : null
-      const isVerificationContext =
-        (agent ? stripInvisibleAgentCharacters(agent) : agent) === "oracle"
-        && !!sessionId
-        && !!directory
-        && loopState?.active === true
-        && loopState.ultrawork === true
-        && loopState.verification_pending === true
-        && loopState.session_id === input.sessionID
-
-      log("[tool-execute-after] ULW verification tracking check", {
-        tool: input.tool,
-        agent,
-        parentSessionID: input.sessionID,
-        oracleSessionID: sessionId,
-        hasPromptInMetadata: typeof prompt === "string",
-        extractedVerificationAttemptId: verificationAttemptId,
-      })
-
-      if (
-        isVerificationContext
-        && verificationAttemptId
-        && loopState.verification_attempt_id === verificationAttemptId
-      ) {
-        ;(await import("../hooks/ralph-loop/storage")).writeState(directory, {
-          ...loopState,
-          verification_session_id: sessionId,
-        })
-        log("[tool-execute-after] Stored oracle verification session via attempt match", {
-          parentSessionID: input.sessionID,
-          oracleSessionID: sessionId,
-          verificationAttemptId,
-        })
-      } else if (isVerificationContext && !verificationAttemptId) {
-        ;(await import("../hooks/ralph-loop/storage")).writeState(directory, {
-          ...loopState,
-          verification_session_id: sessionId,
-        })
-        log("[tool-execute-after] Fallback: stored oracle verification session without attempt match", {
-          parentSessionID: input.sessionID,
-          oracleSessionID: sessionId,
-          hasPromptInMetadata: typeof prompt === "string",
-          expectedAttemptId: loopState.verification_attempt_id,
-          extractedAttemptId: verificationAttemptId,
-        })
-      }
-    }
-
     const runToolExecuteAfterHooks = async (): Promise<void> => {
       await hooks.toolOutputTruncator?.["tool.execute.after"]?.(hookInput, output)
       await hooks.claudeCodeHooks?.["tool.execute.after"]?.(hookInput, output)
@@ -153,8 +94,6 @@ export function createToolExecuteAfterHandler(args: {
       await hooks.taskResumeInfo?.["tool.execute.after"]?.(hookInput, output)
       await hooks.readImageResizer?.["tool.execute.after"]?.(hookInput, output)
       await hooks.hashlineReadEnhancer?.["tool.execute.after"]?.(hookInput, output)
-      await hooks.webfetchRedirectGuard?.["tool.execute.after"]?.(hookInput, output)
-      await hooks.fsyncSkipWarning?.["tool.execute.after"]?.(hookInput, output)
       await hooks.jsonErrorRecovery?.["tool.execute.after"]?.(hookInput, output)
     }
 

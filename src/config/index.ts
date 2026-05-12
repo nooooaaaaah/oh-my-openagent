@@ -13,7 +13,6 @@ export type {
   SisyphusAgentConfig,
   ExperimentalConfig,
   DynamicContextPruningConfig,
-  RalphLoopConfig,
   TmuxConfig,
   TmuxLayout,
   SisyphusConfig,
@@ -21,7 +20,6 @@ export type {
   RuntimeFallbackConfig,
   ModelCapabilitiesConfig,
   FallbackModels,
-  TeamModeConfig,
   KeywordDetectorConfig,
   KeywordType,
 } from "./schema"

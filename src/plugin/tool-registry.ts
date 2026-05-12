@@ -6,22 +6,6 @@ import type {
 } from "../agents/dynamic-agent-prompt-builder"
 import type { OhMyOpenCodeConfig } from "../config"
 import { isInteractiveBashEnabled } from "../create-runtime-tmux-config"
-import {
-  createTeamApproveShutdownTool,
-  createTeamCreateTool,
-  createTeamDeleteTool,
-  createTeamRejectShutdownTool,
-  createTeamShutdownRequestTool,
-} from "../features/team-mode/tools/lifecycle"
-import { createTeamSendMessageTool } from "../features/team-mode/tools/messaging"
-import { createTeamListTool, createTeamStatusTool } from "../features/team-mode/tools/query"
-import {
-  createTeamTaskCreateTool,
-  createTeamTaskGetTool,
-  createTeamTaskListTool,
-  createTeamTaskUpdateTool,
-} from "../features/team-mode/tools/tasks"
-import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch"
 import type { PluginContext, ToolsRecord } from "./types"
 
 import {
@@ -71,18 +55,6 @@ type ToolRegistryFactories = {
   createTaskList: typeof createTaskList
   createTaskUpdateTool: typeof createTaskUpdateTool
   createHashlineEditTool: typeof createHashlineEditTool
-  createTeamApproveShutdownTool: typeof createTeamApproveShutdownTool
-  createTeamCreateTool: typeof createTeamCreateTool
-  createTeamDeleteTool: typeof createTeamDeleteTool
-  createTeamRejectShutdownTool: typeof createTeamRejectShutdownTool
-  createTeamShutdownRequestTool: typeof createTeamShutdownRequestTool
-  createTeamSendMessageTool: typeof createTeamSendMessageTool
-  createTeamTaskCreateTool: typeof createTeamTaskCreateTool
-  createTeamTaskGetTool: typeof createTeamTaskGetTool
-  createTeamTaskListTool: typeof createTeamTaskListTool
-  createTeamTaskUpdateTool: typeof createTeamTaskUpdateTool
-  createTeamStatusTool: typeof createTeamStatusTool
-  createTeamListTool: typeof createTeamListTool
 }
 
 const defaultToolRegistryFactories: ToolRegistryFactories = {
@@ -104,18 +76,6 @@ const defaultToolRegistryFactories: ToolRegistryFactories = {
   createTaskList,
   createTaskUpdateTool,
   createHashlineEditTool,
-  createTeamApproveShutdownTool,
-  createTeamCreateTool,
-  createTeamDeleteTool,
-  createTeamRejectShutdownTool,
-  createTeamShutdownRequestTool,
-  createTeamSendMessageTool,
-  createTeamTaskCreateTool,
-  createTeamTaskGetTool,
-  createTeamTaskListTool,
-  createTeamTaskUpdateTool,
-  createTeamStatusTool,
-  createTeamListTool,
 }
 
 export type ToolRegistryResult = {
@@ -229,7 +189,6 @@ export function createToolRegistry(args: {
     sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
     browserProvider: skillContext.browserProvider,
     disabledSkills: skillContext.disabledSkills,
-    teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
     availableCategories,
     availableSkills: skillContext.availableSkills,
     sisyphusAgentConfig: pluginConfig.sisyphus_agent,
@@ -251,18 +210,6 @@ export function createToolRegistry(args: {
           },
         },
       })
-
-      if (pluginConfig.openclaw) {
-        await openclawRuntimeDispatch.dispatchOpenClawEvent({
-          config: pluginConfig.openclaw,
-          rawEvent: "session.created",
-          context: {
-            sessionId: event.sessionID,
-            projectPath: ctx.directory,
-            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(event.sessionID) ?? process.env.TMUX_PANE,
-          },
-        })
-      }
     },
   })
 
@@ -285,7 +232,6 @@ export function createToolRegistry(args: {
     getSessionID: getSessionIDForMcp,
     gitMasterConfig: pluginConfig.git_master,
     browserProvider: skillContext.browserProvider,
-    teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
     nativeSkills: "skills" in ctx ? (ctx as { skills: SkillLoadOptions["nativeSkills"] }).skills : undefined,
     pluginsEnabled: pluginConfig.claude_code?.plugins ?? true,
     enabledPluginsOverride: pluginConfig.claude_code?.plugins_override,
@@ -306,38 +252,6 @@ export function createToolRegistry(args: {
     ? { edit: factories.createHashlineEditTool(ctx) }
     : {}
 
-  const teamModeToolsRecord: Record<string, ToolDefinition> = pluginConfig.team_mode?.enabled
-    ? {
-        team_create: factories.createTeamCreateTool(
-          pluginConfig.team_mode,
-          ctx.client,
-          managers.backgroundManager,
-          managers.tmuxSessionManager,
-          {
-            userCategories: pluginConfig.categories,
-            sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
-            agentOverrides: pluginConfig.agents,
-          },
-        ),
-        team_delete: factories.createTeamDeleteTool(
-          pluginConfig.team_mode,
-          ctx.client,
-          managers.backgroundManager,
-          managers.tmuxSessionManager,
-        ),
-        team_shutdown_request: factories.createTeamShutdownRequestTool(pluginConfig.team_mode, ctx.client),
-        team_approve_shutdown: factories.createTeamApproveShutdownTool(pluginConfig.team_mode, ctx.client),
-        team_reject_shutdown: factories.createTeamRejectShutdownTool(pluginConfig.team_mode, ctx.client),
-        team_send_message: factories.createTeamSendMessageTool(pluginConfig.team_mode, ctx.client),
-        team_task_create: factories.createTeamTaskCreateTool(pluginConfig.team_mode, ctx.client),
-        team_task_list: factories.createTeamTaskListTool(pluginConfig.team_mode, ctx.client),
-        team_task_update: factories.createTeamTaskUpdateTool(pluginConfig.team_mode, ctx.client),
-        team_task_get: factories.createTeamTaskGetTool(pluginConfig.team_mode, ctx.client),
-        team_status: factories.createTeamStatusTool(pluginConfig.team_mode, ctx.client, managers.backgroundManager),
-        team_list: factories.createTeamListTool(pluginConfig.team_mode, ctx.client),
-      }
-    : {}
-
   const allTools: Record<string, ToolDefinition> = {
     ...factories.builtinTools,
     ...factories.createGrepTools(ctx),
@@ -351,7 +265,6 @@ export function createToolRegistry(args: {
     skill_mcp: skillMcpTool,
     skill: skillTool,
     ...(interactiveBashEnabled ? { interactive_bash: factories.interactive_bash } : {}),
-    ...teamModeToolsRecord,
     ...taskToolsRecord,
     ...hashlineToolsRecord,
   }

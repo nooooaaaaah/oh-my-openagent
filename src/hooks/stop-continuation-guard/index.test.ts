@@ -174,7 +174,7 @@ describe("stop-continuation-guard", () => {
     await guard["chat.message"]({ sessionID })
 
     // then - stop state should persist (not cleared by user messages)
-    // Stop is only cleared by explicit work-starting commands (/start-work, /ralph-loop, /ulw-loop)
+    // Stop is only cleared by explicit work-starting commands (/start-work)
     // or session deletion. This prevents /stop-continuation from being ineffective.
     expect(guard.isStopped(sessionID)).toBe(true)
   })
@@ -201,7 +201,7 @@ describe("stop-continuation-guard", () => {
     guard.stop(sessionID)
     expect(guard.isStopped(sessionID)).toBe(true)
 
-    // when - clear is called (simulating /start-work or /ralph-loop)
+    // when - clear is called (simulating /start-work)
     guard.clear(sessionID)
 
     // then - stop state is cleared

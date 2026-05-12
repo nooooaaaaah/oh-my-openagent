@@ -11,7 +11,7 @@ Core glue layer. Files assemble the 10 OpenCode hook handlers and compose the 5-
 | File | OpenCode Hook | Purpose |
 |------|---------------|---------|
 | `config.ts` | `config` | 6-phase config loading pipeline (delegates to `plugin-handlers/`) |
-| `tool-registry.ts` | `tool` | 20–39 tools assembled with config gates (team-mode +12, task system +4, hashline +1, interactive_bash +1, look_at +1) |
+| `tool-registry.ts` | `tool` | 20–27 tools assembled with config gates (task system +4, hashline +1, interactive_bash +1, look_at +1) |
 | `chat-message.ts` | `chat.message` | First-message variant resolution, session setup, keyword detection trigger |
 | `chat-params.ts` | `chat.params` | Anthropic effort, think mode, runtime fallback model override |
 | `chat-headers.ts` | `chat.headers` | Copilot `x-initiator` header injection |

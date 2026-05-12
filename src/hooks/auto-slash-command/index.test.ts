@@ -167,37 +167,7 @@ describe("createAutoSlashCommandHook", () => {
     })
   })
 
-  describe("excluded commands", () => {
-    it("should NOT trigger for ralph-loop command", async () => {
-      // given ralph-loop command
-      const hook = createAutoSlashCommandHook()
-      const sessionID = `test-session-ralph-${Date.now()}`
-      const input = createMockInput(sessionID)
-      const output = createMockOutput("/ralph-loop do something")
-      const originalText = output.parts[0].text
-
-      // when hook is called
-      await hook["chat.message"](input, output)
-
-      // then should not modify (excluded command)
-      expect(output.parts[0].text).toBe(originalText)
-    })
-
-    it("should NOT trigger for cancel-ralph command", async () => {
-      // given cancel-ralph command
-      const hook = createAutoSlashCommandHook()
-      const sessionID = `test-session-cancel-${Date.now()}`
-      const input = createMockInput(sessionID)
-      const output = createMockOutput("/cancel-ralph")
-      const originalText = output.parts[0].text
-
-      // when hook is called
-      await hook["chat.message"](input, output)
-
-      // then should not modify
-      expect(output.parts[0].text).toBe(originalText)
-    })
-  })
+  describe("excluded commands", () => {})
 
   describe("already processed", () => {
     it("should skip if auto-slash-command tags already present", async () => {
@@ -340,36 +310,6 @@ describe("createAutoSlashCommandHook", () => {
 
       //#then
       expect(output.parts.length).toBe(0)
-    })
-
-    it("should inject template for known builtin commands like ralph-loop", async () => {
-      //#given
-      const hook = createAutoSlashCommandHook()
-      const input = createCommandInput("ralph-loop")
-      const output = createCommandOutput("original")
-
-      //#when
-      await hook["command.execute.before"](input, output)
-
-      //#then
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
-      expect(output.parts[0].text).toContain("/ralph-loop Command")
-    })
-
-    it("should inject template for known builtin commands like ulw-loop", async () => {
-      //#given
-      const hook = createAutoSlashCommandHook()
-      const input = createCommandInput("ulw-loop", '"Ship feature" --strategy=continue')
-      const output = createCommandOutput("original")
-
-      //#when
-      await hook["command.execute.before"](input, output)
-
-      //#then
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
-      expect(output.parts[0].text).toContain("/ulw-loop Command")
-      expect(output.parts[0].text).toContain("<user-task>")
-      expect(output.parts[0].text).toContain('"Ship feature" --strategy=continue')
     })
 
     it("should pass command arguments correctly", async () => {

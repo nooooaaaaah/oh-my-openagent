@@ -12,7 +12,7 @@ import { pollForCompletion } from "./poll-for-completion"
 import { loadAgentProfileColors } from "./agent-profile-colors"
 import { suppressRunInput } from "./stdin-suppression"
 import { createTimestampedStdoutController } from "./timestamp-output"
-import { createCliPostHog, getPostHogDistinctId } from "../../shared/posthog"
+
 
 export { resolveRunAgent }
 
@@ -50,14 +50,6 @@ export async function run(options: RunOptions): Promise<number> {
   const pluginConfig = loadPluginConfig(directory, { command: "run" })
   const resolvedAgent = resolveRunAgent(options, pluginConfig)
   const abortController = new AbortController()
-
-  const posthog = createCliPostHog()
-  const distinctId = getPostHogDistinctId()
-  try {
-    posthog.trackActive(distinctId, "run_started")
-  } catch {
-    // telemetry failure is non-fatal, silently ignore
-  }
 
   try {
     const resolvedModel = resolveRunModel(options.model)
@@ -167,11 +159,6 @@ export async function run(options: RunOptions): Promise<number> {
     console.error(pc.red(`Error: ${serializeError(err)}`))
     return 1
   } finally {
-    try {
-      await posthog.shutdown()
-    } catch {
-      // telemetry failure is non-fatal, silently ignore
-    }
     timestampOutput?.restore()
   }
 }
