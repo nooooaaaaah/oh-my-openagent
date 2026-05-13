@@ -1,6 +1,6 @@
 # src/ — Plugin Source
 
-See [root AGENTS.md](../AGENTS.md) for the high-level architecture and *why* this exists.
+See [docs/AGENTS.md](../docs/AGENTS.md) for the high-level architecture and *why* this exists.
 
 ## KEY FILES
 
